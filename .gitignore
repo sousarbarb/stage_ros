@@ -1,2 +1,4 @@
-build
-.svn
+.idea
+.vs
+.vscode
+build/
