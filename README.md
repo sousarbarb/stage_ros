@@ -26,7 +26,6 @@ clang-format --style=<llvm|google|chromium|mozilla|webKit> --dump-config > .clan
 3. Paste the following in your user settings JSON file
    ```json
    {
-     // ... (e.g., at the end of the file)
      "editor.formatOnSave": true,
      "[cpp]": {
        "editor.defaultFormatter": "ms-vscode.cpptools"
