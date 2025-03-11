@@ -1,0 +1,33 @@
+<launch>
+
+  <arg name="node_name" default="teleop_twist_keyboard" doc="node name (enables multiple instances)" />
+
+  <arg name="cmd_vel_topic" default="/cmd_vel" doc="name of cmd_vel topic (remap)" />
+
+  <arg name="speed" default="0.30" doc="nominal linear speed (m/s)" />
+  <arg name="turn" default="0.60" doc="nominal angular speed (rad/s)" />
+
+  <arg name="speed_limit" default="1000" doc="linear speed limit (m/s)" />
+  <arg name="turn_limit" default="1000" doc="angular speed limit (rad/s)" />
+
+  <arg name="repeat_rate" default="10" doc="repeat the last command at a fixed interval (Hz)" />
+  <arg name="key_timeout" default="0" doc="stop robot if no key pressed in a time period (s)" />
+
+
+  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"
+    name="$(arg node_name)" clear_params="true" output="screen">
+
+    <remap from="/cmd_vel" to="$(arg cmd_vel_topic)" />
+
+    <param name="speed" type="double" value="$(arg speed)" />
+    <param name="turn" type="double" value="$(arg turn)" />
+
+    <param name="speed_limit" type="double" value="$(arg speed_limit)" />
+    <param name="turn_limit" type="double" value="$(arg turn_limit)" />
+
+    <param name="repeat_rate" type="double" value="$(arg repeat_rate)" />
+    <param name="key_timeout" type="double" value="$(arg key_timeout)" />
+
+  </node>
+
+</launch>
