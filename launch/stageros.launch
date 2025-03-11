@@ -1,0 +1,13 @@
+<launch>
+
+  <arg name="world_file" default="$(dirname)/../worlds/willow-full.world" />
+
+
+  <node pkg="stage_ros" type="stageros" name="stage" clear_params="true"
+    output="screen" args="$(arg world_file)">
+
+    <param name="pub_gt_tf" value="true" />
+
+  </node>
+
+</launch>

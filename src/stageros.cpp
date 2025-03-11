@@ -36,6 +36,7 @@
 #include <stage.hh>
 
 // roscpp
+#include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
@@ -45,11 +46,16 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h>
 #include <std_srvs/Empty.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2/exceptions.h>
+#include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
-
-#include "tf/transform_broadcaster.h"
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -127,7 +133,12 @@ class StageNode
   const char* mapName(const char* name, size_t robotID, size_t deviceID,
                       Stg::Model* mod) const;
 
-  tf::TransformBroadcaster tf;
+  tf2_ros::TransformBroadcaster tf;               //!< TF broadcaster
+  tf2_ros::StaticTransformBroadcaster tf_static;  //!< TF static broadcaster
+
+  bool is_tf_static_init = false;  //!< check if TF static initialized
+  bool param_pub_gt_tf = false;    //!< enable TF ground-truth publication
+  uint32_t msgs_seq = 0;           //!< ROS messages header.seq counter
 
   // Last time that we received a velocity command
   ros::Time base_last_cmd;
@@ -187,12 +198,12 @@ const char* StageNode::mapName(const char* name, size_t robotID,
 
     if ((found == std::string::npos) && umn)
     {
-      snprintf(buf, sizeof(buf), "/%s/%s", ((Stg::Ancestor*) mod)->Token(),
+      snprintf(buf, sizeof(buf), "%s/%s", ((Stg::Ancestor*) mod)->Token(),
                name);
     }
     else
     {
-      snprintf(buf, sizeof(buf), "/robot_%u/%s", (unsigned int) robotID, name);
+      snprintf(buf, sizeof(buf), "robot_%u/%s", (unsigned int) robotID, name);
     }
 
     return buf;
@@ -214,13 +225,13 @@ const char* StageNode::mapName(const char* name, size_t robotID,
 
     if ((found == std::string::npos) && umn)
     {
-      snprintf(buf, sizeof(buf), "/%s/%s_%u", ((Stg::Ancestor*) mod)->Token(),
+      snprintf(buf, sizeof(buf), "%s/%s_%u", ((Stg::Ancestor*) mod)->Token(),
                name, (unsigned int) deviceID);
     }
     else
     {
-      snprintf(buf, sizeof(buf), "/robot_%u/%s_%u", (unsigned int) robotID,
-               name, (unsigned int) deviceID);
+      snprintf(buf, sizeof(buf), "robot_%u/%s_%u", (unsigned int) robotID, name,
+               (unsigned int) deviceID);
     }
 
     return buf;
@@ -228,7 +239,7 @@ const char* StageNode::mapName(const char* name, size_t robotID,
   else
   {
     static char buf[100];
-    snprintf(buf, sizeof(buf), "/%s_%u", name, (unsigned int) deviceID);
+    snprintf(buf, sizeof(buf), "%s_%u", name, (unsigned int) deviceID);
     return buf;
   }
 }
@@ -288,6 +299,8 @@ StageNode::StageNode(int argc, char** argv, bool gui, const char* fname,
 
   if (!localn.getParam("is_depth_canonical", isDepthCanonical))
     isDepthCanonical = true;
+
+  localn.param<bool>("pub_gt_tf", param_pub_gt_tf, false);
 
   // We'll check the existence of the world file, because libstage doesn't
   // expose its failure to open it.  Could go further with checks (e.g., is
@@ -473,6 +486,114 @@ void StageNode::WorldCallback()
       this->positionmodels[r]->SetSpeed(0.0, 0.0, 0.0);
   }
 
+  // INIT TFs
+  if (!is_tf_static_init)
+  {
+    for (size_t r = 0; r < this->robotmodels_.size(); ++r)
+    {
+      StageRobot const* robotmodel = this->robotmodels_[r];
+
+      // loop on the laser devices for the current robot
+      for (size_t s = 0; s < robotmodel->lasermodels.size(); ++s)
+      {
+        Stg::ModelRanger const* lasermodel = robotmodel->lasermodels[s];
+
+        // Also publish the base->base_laser_link Tx.  This could eventually
+        // move into being retrieved from the param server as a static Tx.
+        Stg::Pose lp = lasermodel->GetPose();
+        tf2::Quaternion laserQ;
+        laserQ.setRPY(0.0, 0.0, lp.a);
+        tf2::Transform txLaser(
+            laserQ,
+            tf2::Vector3(lp.x, lp.y,
+                         robotmodel->positionmodel->GetGeom().size.z + lp.z));
+
+        geometry_msgs::TransformStamped tfLaser;
+
+        if (robotmodel->lasermodels.size() > 1)
+        {
+          tfLaser.header.frame_id = std::string(
+              mapName("base_link", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+          tfLaser.child_frame_id = std::string(
+              mapName("base_laser_link", r, s,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+        }
+        else
+        {
+          tfLaser.header.frame_id = std::string(
+              mapName("base_link", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+          tfLaser.child_frame_id = std::string(
+              mapName("base_laser_link", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+        }
+
+        tfLaser.header.stamp = sim_time;
+        tfLaser.transform = tf2::toMsg(txLaser);
+
+        tf_static.sendTransform(tfLaser);
+      }
+
+      geometry_msgs::TransformStamped tfRobotBase;
+
+      tfRobotBase.header.frame_id = std::string(
+          mapName("base_footprint", r,
+                  static_cast<Stg::Model*>(robotmodel->positionmodel)));
+      tfRobotBase.header.stamp = sim_time;
+      tfRobotBase.child_frame_id = std::string(mapName(
+          "base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel)));
+      tfRobotBase.transform = tf2::toMsg(tf2::Transform::getIdentity());
+
+      tf_static.sendTransform(tfRobotBase);
+
+      // cameras
+      for (size_t s = 0; s < robotmodel->cameramodels.size(); ++s)
+      {
+        Stg::ModelCamera* cameramodel = robotmodel->cameramodels[s];
+
+        Stg::Pose lp = cameramodel->GetPose();
+        tf2::Quaternion Q;
+        Q.setRPY((cameramodel->getCamera().pitch() * M_PI / 180.0) - M_PI, 0.0,
+                 lp.a + (cameramodel->getCamera().yaw() * M_PI / 180.0) -
+                     robotmodel->positionmodel->GetPose().a);
+
+        tf2::Transform tr(
+            Q,
+            tf2::Vector3(lp.x, lp.y,
+                         robotmodel->positionmodel->GetGeom().size.z + lp.z));
+
+        geometry_msgs::TransformStamped tfCamera;
+
+        if (robotmodel->cameramodels.size() > 1)
+        {
+          tfCamera.header.frame_id = std::string(
+              mapName("base_link", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+          tfCamera.child_frame_id = std::string(
+              mapName("camera", r, s,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+        }
+        else
+        {
+          tfCamera.header.frame_id = std::string(
+              mapName("base_link", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+          tfCamera.child_frame_id = std::string(
+              mapName("camera", r,
+                      static_cast<Stg::Model*>(robotmodel->positionmodel)));
+        }
+
+        tfCamera.header.stamp = sim_time;
+        tfCamera.transform = tf2::toMsg(tr);
+
+        tf_static.sendTransform(tfCamera);
+      }
+    }
+
+    is_tf_static_init = true;
+  }
+
   // loop on the robot models
   for (size_t r = 0; r < this->robotmodels_.size(); ++r)
   {
@@ -520,50 +641,19 @@ void StageNode::WorldCallback()
                       static_cast<Stg::Model*>(robotmodel->positionmodel));
 
         msg.header.stamp = sim_time;
+        msg.header.seq = msgs_seq;
         robotmodel->laser_pubs[s].publish(msg);
       }
-
-      // Also publish the base->base_laser_link Tx.  This could eventually move
-      // into being retrieved from the param server as a static Tx.
-      Stg::Pose lp = lasermodel->GetPose();
-      tf::Quaternion laserQ;
-      laserQ.setRPY(0.0, 0.0, lp.a);
-      tf::Transform txLaser = tf::Transform(
-          laserQ,
-          tf::Point(lp.x, lp.y,
-                    robotmodel->positionmodel->GetGeom().size.z + lp.z));
-
-      if (robotmodel->lasermodels.size() > 1)
-        tf.sendTransform(tf::StampedTransform(
-            txLaser, sim_time,
-            mapName("base_link", r,
-                    static_cast<Stg::Model*>(robotmodel->positionmodel)),
-            mapName("base_laser_link", r, s,
-                    static_cast<Stg::Model*>(robotmodel->positionmodel))));
-      else
-        tf.sendTransform(tf::StampedTransform(
-            txLaser, sim_time,
-            mapName("base_link", r,
-                    static_cast<Stg::Model*>(robotmodel->positionmodel)),
-            mapName("base_laser_link", r,
-                    static_cast<Stg::Model*>(robotmodel->positionmodel))));
     }
-
-    // the position of the robot
-    tf.sendTransform(tf::StampedTransform(
-        tf::Transform::getIdentity(), sim_time,
-        mapName("base_footprint", r,
-                static_cast<Stg::Model*>(robotmodel->positionmodel)),
-        mapName("base_link", r,
-                static_cast<Stg::Model*>(robotmodel->positionmodel))));
 
     // Get latest odometry data
     // Translate into ROS message format and publish
+    tf2::Quaternion robotQ;
+    robotQ.setRPY(0, 0, robotmodel->positionmodel->est_pose.a);
     nav_msgs::Odometry odom_msg;
     odom_msg.pose.pose.position.x = robotmodel->positionmodel->est_pose.x;
     odom_msg.pose.pose.position.y = robotmodel->positionmodel->est_pose.y;
-    odom_msg.pose.pose.orientation =
-        tf::createQuaternionMsgFromYaw(robotmodel->positionmodel->est_pose.a);
+    odom_msg.pose.pose.orientation = tf2::toMsg(robotQ);
     Stg::Velocity v = robotmodel->positionmodel->GetVelocity();
     odom_msg.twist.twist.linear.x = v.x;
     odom_msg.twist.twist.linear.y = v.y;
@@ -575,25 +665,35 @@ void StageNode::WorldCallback()
     odom_msg.header.frame_id =
         mapName("odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
     odom_msg.header.stamp = sim_time;
+    odom_msg.header.seq = msgs_seq;
 
     robotmodel->odom_pub.publish(odom_msg);
 
     // broadcast odometry transform
-    tf::Quaternion odomQ;
-    tf::quaternionMsgToTF(odom_msg.pose.pose.orientation, odomQ);
-    tf::Transform txOdom(odomQ, tf::Point(odom_msg.pose.pose.position.x,
-                                          odom_msg.pose.pose.position.y, 0.0));
-    tf.sendTransform(tf::StampedTransform(
-        txOdom, sim_time,
-        mapName("odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
+    tf2::Quaternion odomQ;
+    tf2::fromMsg(odom_msg.pose.pose.orientation, odomQ);
+    tf2::Transform txOdom(odomQ,
+                          tf2::Vector3(odom_msg.pose.pose.position.x,
+                                       odom_msg.pose.pose.position.y, 0.0));
+
+    geometry_msgs::TransformStamped tfOdom;
+
+    tfOdom.header.frame_id = std::string(mapName(
+        "odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel)));
+    ;
+    tfOdom.header.stamp = sim_time;
+    tfOdom.child_frame_id = std::string(
         mapName("base_footprint", r,
-                static_cast<Stg::Model*>(robotmodel->positionmodel))));
+                static_cast<Stg::Model*>(robotmodel->positionmodel)));
+    tfOdom.transform = tf2::toMsg(txOdom);
+
+    tf.sendTransform(tfOdom);
 
     // Also publish the ground truth pose and velocity
     Stg::Pose gpose = robotmodel->positionmodel->GetGlobalPose();
-    tf::Quaternion q_gpose;
+    tf2::Quaternion q_gpose;
     q_gpose.setRPY(0.0, 0.0, gpose.a);
-    tf::Transform gt(q_gpose, tf::Point(gpose.x, gpose.y, 0.0));
+    tf2::Transform gt(q_gpose, tf2::Vector3(gpose.x, gpose.y, 0.0));
     // Velocity is 0 by default and will be set only if there is previous pose
     // and time delta>0
     Stg::Velocity gvel(0, 0, 0, 0);
@@ -624,11 +724,28 @@ void StageNode::WorldCallback()
     ground_truth_msg.twist.twist.linear.z = gvel.z;
     ground_truth_msg.twist.twist.angular.z = gvel.a;
 
-    ground_truth_msg.header.frame_id =
-        mapName("odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
+    ground_truth_msg.header.frame_id = "gt";
     ground_truth_msg.header.stamp = sim_time;
+    ground_truth_msg.header.seq = msgs_seq;
+    ground_truth_msg.child_frame_id =
+        mapName("base_footprint", r,
+                static_cast<Stg::Model*>(robotmodel->positionmodel));
 
     robotmodel->ground_truth_pub.publish(ground_truth_msg);
+
+    if (param_pub_gt_tf)
+    {
+      tf2::Transform txGt = gt * txOdom.inverse();
+
+      geometry_msgs::TransformStamped tfGt;
+      tfGt.header.frame_id = "gt";
+      tfGt.header.stamp = sim_time;
+      tfGt.child_frame_id = mapName(
+          "odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
+      tfGt.transform = tf2::toMsg(txGt);
+
+      tf.sendTransform(tfGt);
+    }
 
     // cameras
     for (size_t s = 0; s < robotmodel->cameramodels.size(); ++s)
@@ -672,6 +789,7 @@ void StageNode::WorldCallback()
           image_msg.header.frame_id = mapName(
               "camera", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
         image_msg.header.stamp = sim_time;
+        image_msg.header.seq = msgs_seq;
 
         robotmodel->image_pubs[s].publish(image_msg);
       }
@@ -741,6 +859,7 @@ void StageNode::WorldCallback()
           depth_msg.header.frame_id = mapName(
               "camera", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
         depth_msg.header.stamp = sim_time;
+        depth_msg.header.seq = msgs_seq;
         robotmodel->depth_pubs[s].publish(depth_msg);
       }
 
@@ -751,31 +870,6 @@ void StageNode::WorldCallback()
           (robotmodel->depth_pubs[s].getNumSubscribers() > 0 &&
            cameramodel->FrameDepth()))
       {
-        Stg::Pose lp = cameramodel->GetPose();
-        tf::Quaternion Q;
-        Q.setRPY((cameramodel->getCamera().pitch() * M_PI / 180.0) - M_PI, 0.0,
-                 lp.a + (cameramodel->getCamera().yaw() * M_PI / 180.0) -
-                     robotmodel->positionmodel->GetPose().a);
-
-        tf::Transform tr = tf::Transform(
-            Q, tf::Point(lp.x, lp.y,
-                         robotmodel->positionmodel->GetGeom().size.z + lp.z));
-
-        if (robotmodel->cameramodels.size() > 1)
-          tf.sendTransform(tf::StampedTransform(
-              tr, sim_time,
-              mapName("base_link", r,
-                      static_cast<Stg::Model*>(robotmodel->positionmodel)),
-              mapName("camera", r, s,
-                      static_cast<Stg::Model*>(robotmodel->positionmodel))));
-        else
-          tf.sendTransform(tf::StampedTransform(
-              tr, sim_time,
-              mapName("base_link", r,
-                      static_cast<Stg::Model*>(robotmodel->positionmodel)),
-              mapName("camera", r,
-                      static_cast<Stg::Model*>(robotmodel->positionmodel))));
-
         sensor_msgs::CameraInfo camera_msg;
         if (robotmodel->cameramodels.size() > 1)
           camera_msg.header.frame_id =
@@ -785,6 +879,7 @@ void StageNode::WorldCallback()
           camera_msg.header.frame_id = mapName(
               "camera", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
         camera_msg.header.stamp = sim_time;
+        camera_msg.header.seq = msgs_seq;
         camera_msg.height = cameramodel->getHeight();
         camera_msg.width = cameramodel->getWidth();
 
@@ -824,6 +919,8 @@ void StageNode::WorldCallback()
       }
     }
   }
+
+  msgs_seq++;
 
   this->base_last_globalpos_time = this->sim_time;
   rosgraph_msgs::Clock clock_msg;
