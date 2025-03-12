@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(stage_ros)
 
 
@@ -10,14 +10,36 @@ set(${PROJECT_NAME}_COMPILE_OPT "-Wall;-Wextra;-Wpedantic;-std=c++17")
 
 
 ## SYTEM DEPENDENCIES (found with CMake's conventions)
+# Boost
 find_package(Boost REQUIRED COMPONENTS system thread)
-find_package(stage REQUIRED)
+
+# Stage Simulator
+if (DEFINED STAGE_PACKAGE_PATH)
+  message(STATUS "STAGE_PACKAGE_PATH CMake variable is set: ${STAGE_PACKAGE_PATH}")
+  find_package(stage REQUIRED PATHS ${STAGE_PACKAGE_PATH} NO_DEFAULT_PATH)
+else()
+  find_package(stage QUIET)
+  if (NOT stage_FOUND)
+    message(STATUS "stage not found in CMake default modules path. "
+                  "Trying to find in default locations...")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/stage")
+    message(STATUS "stage ROS-independent default location: /opt/stage")
+    message(STATUS "CMake modules path: ${CMAKE_MODULE_PATH}")
+    find_package(stage REQUIRED)
+  endif()
+endif()
+
+message(STATUS "stage found at: ${stage_DIR}")
 
 
 
-## ROBOT OPERATING SYSTEM (ROS) 1 - NOETIC
+
+
+## ROBOT OPERATING SYSTEM (ROS) 1
 
 if("$ENV{ROS_VERSION}" STREQUAL "1")
+
+message(STATUS "Robot Operating System (ROS) detected: ROS $ENV{ROS_VERSION} $ENV{ROS_DISTRO}")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -128,5 +150,21 @@ install(DIRECTORY rviz
 install(DIRECTORY world
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+
+
+## ROBOT OPERATING SYSTEM (ROS) 2
+
+elseif("$ENV{ROS_VERSION}" STREQUAL "2")
+
+message(STATUS "Robot Operating System (ROS) detected: ROS $ENV{ROS_VERSION} $ENV{ROS_DISTRO}")
+
+
+
+## !!!NO ROBOT OPERATING SYSTEM VERSION FOUND!!!
+
+else()
+
+message(FATAL_ERROR "ROS_VERSION environment variable not set...")
 
 endif()

@@ -13,7 +13,9 @@
   <license>BSD</license>
 
   <url type="website">https://ros.org/wiki/stage_ros</url>
+  <url type="repository">https://github.com/sousarbarb/stage_ros</url>
   <url type="repository">https://github.com/ros-simulation/stage_ros</url>
+  <url type="bugtracker">https://github.com/sousarbarb/stage_ros/issues</url>
   <url type="bugtracker">https://github.com/ros-simulation/stage_ros/issues</url>
 
   <author email="gerky@osrfoundation.org">Brian Gerky</author>

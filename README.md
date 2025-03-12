@@ -73,3 +73,33 @@ cd /opt/stage/bin/
 ```sh
 sudo apt install -y ros-`echo $ROS_DISTRO`-stage
 ```
+
+## Usage
+
+### Build
+
+**ROS 1**
+```sh
+source /opt/ros/noetic/setup.bash
+
+mkdir ~/ros1_ws/src -p
+
+cd ~/ros1_ws/src/
+git clone git@github.com:sousarbarb/stage_ros.git
+
+cd ~/ros1_ws/
+catkin_make --force-cmake --cmake-args -DCMAKE_BUILD_TYPE=Release
+```
+
+**ROS 2**
+```sh
+source /opt/ros/foxy/setup.bash
+
+mkdir ~/ros2_ws/src -p
+
+cd ~/ros2_ws/src/
+git clone git@github.com:sousarbarb/stage_ros.git
+
+cd ~/ros2_ws/
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers summary+ status+ console_direct+ console_start_end+ console_stderr+
+```
