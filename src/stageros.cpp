@@ -685,6 +685,9 @@ void StageNode::WorldCallback()
                 static_cast<Stg::Model*>(robotmodel->positionmodel));
     odom_msg.header.stamp = sim_time;
     odom_msg.header.seq = msgs_seq;
+    odom_msg.child_frame_id = std::string(
+        mapName(param_frame_base_footprint.c_str(), r,
+                static_cast<Stg::Model*>(robotmodel->positionmodel)));
 
     robotmodel->odom_pub.publish(odom_msg);
 
