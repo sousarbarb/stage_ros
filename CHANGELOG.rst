@@ -2,6 +2,20 @@
 Changelog for package stage_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.9.0 (2025-03-12)
+------------------
+* Hokuyo UST-10LX + UTM-30LX sensor models
+* willow-full.world (single robot and no obstacles, willow-full.pgm)
+* Fix / in frame ID (not compatible with TF2 / rviz)
+* Parameter pub_gt_tf to enable publication of ground-truth TF
+* Set header.seq on ROS topic messages (except on TF) with an incremental uint32
+  counter (possibly useful to check if algorithms are losing messages or not)
+* Launch file for teleop twist keyboard
+* Parameters for TF / messages frame IDs
+* Parameter to use odometry model or gt pose in odom_msg and base w.r.t. odom
+* Parameter to enable TF static publication or not (latter only publishes
+  base_footprint w.r.t. odom and, if enabled, odom w.r.t. ground-truth)
+
 1.8.0 (2017-04-30)
 ------------------
 * Now uses Stage's native event loop properly and added reassuring startup output.
