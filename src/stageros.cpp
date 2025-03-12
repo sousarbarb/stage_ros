@@ -136,9 +136,10 @@ class StageNode
   tf2_ros::TransformBroadcaster tf;               //!< TF broadcaster
   tf2_ros::StaticTransformBroadcaster tf_static;  //!< TF static broadcaster
 
-  bool is_tf_static_init = false;  //!< check if TF static initialized
-  bool param_pub_gt_tf = false;    //!< enable TF ground-truth publication
-  uint32_t msgs_seq = 0;           //!< ROS messages header.seq counter
+  bool is_tf_static_init = false;   //!< check if TF static initialized
+  bool param_pub_gt_tf = false;     //!< enable TF ground-truth publication
+  bool param_pub_static_tf = true;  //!< enable TF static frames publication
+  uint32_t msgs_seq = 0;            //!< ROS messages header.seq counter
 
   std::string param_frame_gt;              //!< ground-truth TF frame ID
   std::string param_frame_odom;            //!< odometry TF frame ID
@@ -310,6 +311,7 @@ StageNode::StageNode(int argc, char** argv, bool gui, const char* fname,
     isDepthCanonical = true;
 
   localn.param<bool>("pub_gt_tf", param_pub_gt_tf, false);
+  localn.param<bool>("pub_static_tf", param_pub_static_tf, true);
 
   localn.param<std::string>("gt_frame", param_frame_gt, "gt");
   localn.param<std::string>("odom_frame", param_frame_odom, "odom");
@@ -508,7 +510,7 @@ void StageNode::WorldCallback()
   }
 
   // INIT TFs
-  if (!is_tf_static_init)
+  if (!is_tf_static_init && param_pub_static_tf)
   {
     for (size_t r = 0; r < this->robotmodels_.size(); ++r)
     {
