@@ -51,7 +51,7 @@ sudo apt-get install -y git build-essential cmake
 # ( if you do not want interactive mode, execute the following
 #   before installing the other dependencies... )
 # DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends tzdata
-sudo apt-get install -y libjpeg-dev libpng-dev libltdl-dev libfltk1.3-dev libglew-dev
+sudo apt-get install -y libjpeg-dev libpng-dev libltdl-dev libfltk1.3-dev libglu1-mesa-dev
 
 mkdir ~/dev -p
 cd ~/dev
@@ -61,7 +61,7 @@ cd Stage
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/stage ..
 make
-make install
+sudo make install
 
 export LD_LIBRARY_PATH=/opt/stage/lib:$LD_LIBRARY_PATH
 
