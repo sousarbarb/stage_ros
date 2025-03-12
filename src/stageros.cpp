@@ -147,6 +147,8 @@ class StageNode
   std::string param_frame_laser;           //!< 2D laser scan TF frame ID
   std::string param_frame_camera;          //!< camera TF frame ID
 
+  bool param_use_odom_model;  //!< odometry model vs ground-truth in odom_msg
+
   // Last time that we received a velocity command
   ros::Time base_last_cmd;
   ros::Duration base_watchdog_timeout;
@@ -318,6 +320,8 @@ StageNode::StageNode(int argc, char** argv, bool gui, const char* fname,
   localn.param<std::string>("laser_frame", param_frame_laser,
                             "base_laser_link");
   localn.param<std::string>("camera_frame", param_frame_camera, "camera");
+
+  localn.param<bool>("use_odom_model", param_use_odom_model, true);
 
   // We'll check the existence of the world file, because libstage doesn't
   // expose its failure to open it.  Could go further with checks (e.g., is
@@ -664,13 +668,25 @@ void StageNode::WorldCallback()
       }
     }
 
+    // Get ground-truth pose
+    Stg::Pose gpose = robotmodel->positionmodel->GetGlobalPose();
+
     // Get latest odometry data
     // Translate into ROS message format and publish
     tf2::Quaternion robotQ;
-    robotQ.setRPY(0, 0, robotmodel->positionmodel->est_pose.a);
     nav_msgs::Odometry odom_msg;
-    odom_msg.pose.pose.position.x = robotmodel->positionmodel->est_pose.x;
-    odom_msg.pose.pose.position.y = robotmodel->positionmodel->est_pose.y;
+    if (param_use_odom_model)
+    {
+      robotQ.setRPY(0, 0, robotmodel->positionmodel->est_pose.a);
+      odom_msg.pose.pose.position.x = robotmodel->positionmodel->est_pose.x;
+      odom_msg.pose.pose.position.y = robotmodel->positionmodel->est_pose.y;
+    }
+    else
+    {
+      robotQ.setRPY(0, 0, gpose.a);
+      odom_msg.pose.pose.position.x = gpose.x;
+      odom_msg.pose.pose.position.y = gpose.y;
+    }
     odom_msg.pose.pose.orientation = tf2::toMsg(robotQ);
     Stg::Velocity v = robotmodel->positionmodel->GetVelocity();
     odom_msg.twist.twist.linear.x = v.x;
@@ -713,7 +729,6 @@ void StageNode::WorldCallback()
     tf.sendTransform(tfOdom);
 
     // Also publish the ground truth pose and velocity
-    Stg::Pose gpose = robotmodel->positionmodel->GetGlobalPose();
     tf2::Quaternion q_gpose;
     q_gpose.setRPY(0.0, 0.0, gpose.a);
     tf2::Transform gt(q_gpose, tf2::Vector3(gpose.x, gpose.y, 0.0));

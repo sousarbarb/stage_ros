@@ -15,6 +15,8 @@
     <param name="laser_frame" type="string" value="base_laser_link" />
     <param name="camera_frame" type="string" value="camera" />
 
+    <param name="use_odom_model" type="bool" value="true" />
+
   </node>
 
 </launch>
