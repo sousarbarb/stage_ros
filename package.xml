@@ -20,17 +20,28 @@
 
   <author email="gerky@osrfoundation.org">Brian Gerky</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
+  <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
+
+  <depend condition="$ROS_VERSION == 2">rclcpp</depend>
+  <depend condition="$ROS_VERSION == 1">roscpp</depend>
 
   <depend>boost</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>roscpp</depend>
   <depend>sensor_msgs</depend>
   <depend>stage</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2_ros</depend>
+
+  <test_depend condition="$ROS_VERSION == 2">ament_lint_auto</test_depend>
+  <test_depend condition="$ROS_VERSION == 2">ament_lint_common</test_depend>
+
+  <export>
+    <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+    <build_type condition="$ROS_VERSION == 1">catkin</build_type>
+  </export>
 
 </package>
