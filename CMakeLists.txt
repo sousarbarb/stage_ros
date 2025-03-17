@@ -3,15 +3,9 @@ project(stage_ros)
 
 
 
-# Default to C99
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-
-# Default to C++17
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
+# C / C++ versions
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 17)
 
 # Compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -21,9 +15,6 @@ endif()
 
 
 ## SYTEM DEPENDENCIES (found with CMake's conventions)
-# Boost
-find_package(Boost REQUIRED COMPONENTS system thread)
-
 # Stage Simulator
 if (DEFINED STAGE_PACKAGE_PATH)
   message(STATUS "STAGE_PACKAGE_PATH CMake variable is set: ${STAGE_PACKAGE_PATH}")
@@ -92,7 +83,6 @@ catkin_package(
     tf2_geometry_msgs
     tf2_ros
   DEPENDS
-    Boost
     stage
 )
 
@@ -106,7 +96,6 @@ link_directories(${catkin_LIBRARY_DIRS})
 ## Your package locations should be listed before other locations
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
   ${STAGE_INCLUDE_DIRS}
 )
 
@@ -132,7 +121,6 @@ endif()
 ## Specify libraries to link a library or executable target against
 target_link_libraries(stageros
   ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
   ${STAGE_LIBRARIES}
   ${${PROJECT_NAME}_extra_libs}
 )
@@ -205,14 +193,11 @@ endif()
 target_include_directories(stageros2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  ${Boost_INCLUDE_DIRS}
   ${STAGE_INCLUDE_DIRS}
 )
 
 ## C++ executable specific target dependencies
 target_link_libraries(stageros2
-  Boost::system
-  Boost::thread
   ${STAGE_LIBRARIES}
   ${${PROJECT_NAME}_extra_libs}
 )

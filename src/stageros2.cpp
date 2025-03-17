@@ -25,7 +25,6 @@
 
 @htmlinclude manifest.html
 **/
-
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +34,11 @@
 #include <unistd.h>
 
 #include <exception>
+#include <mutex>
+#include <thread>
+
+// rclcpp (you need to ensure that this header is included before all others...)
+#include <rclcpp/rclcpp.hpp>
 
 // libstage
 #include <stage.hh>
@@ -51,17 +55,12 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <std_srvs/srv/empty.hpp>
-
-// boost
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -77,7 +76,7 @@ class StageROS2Node : public rclcpp::Node
 {
  private:
 
-  boost::mutex msg_lock;  //!< mutex lock access to fields used in msg callbacks
+  std::mutex msg_lock;  //!< mutex lock access to fields used in msg callbacks
 
   std::vector<Stg::ModelCamera*> cameramodels;      //!< Stage camera model
   std::vector<Stg::ModelRanger*> lasermodels;       //!< Stage laser model
@@ -166,9 +165,10 @@ class StageROS2Node : public rclcpp::Node
    * @param[in] use_model_names use model names from the .world configuration
    *                            file
    */
-  StageROS2Node(int argc, char** argv, bool gui, const char* fname,
+  StageROS2Node(int argc, char** argv, bool gui, const char* /* fname */,
                 bool use_model_names)
-      : rclcpp::Node("stageros2"), base_watchdog_timeout(0)
+      : rclcpp::Node("stageros2"),
+        base_watchdog_timeout(std::chrono::nanoseconds(0))
   {
     this->use_model_names = use_model_names;
     this->sim_time = rclcpp::Time(0.0);
@@ -409,7 +409,7 @@ class StageROS2Node : public rclcpp::Node
       return;
     }
 
-    boost::mutex::scoped_lock lock(msg_lock);
+    std::scoped_lock lock(msg_lock);
 
     this->sim_time = rclcpp::Time(world->SimTimeNow() / 1e6);
     // We're not allowed to publish clock==0, because it used as a special
@@ -908,7 +908,7 @@ class StageROS2Node : public rclcpp::Node
    */
   void cmdvelReceived(const geometry_msgs::msg::Twist::SharedPtr msg, int idx)
   {
-    boost::mutex::scoped_lock lock(msg_lock);
+    std::scoped_lock lock(msg_lock);
     this->positionmodels[idx]->SetSpeed(msg->linear.x, msg->linear.y,
                                         msg->angular.z);
     this->base_last_cmd = this->sim_time;
@@ -1052,8 +1052,7 @@ int main(int argc, char** argv)
 
   if (stageros2->SubscribeModels() != 0) exit(-1);
 
-  boost::thread t =
-      boost::thread([&, stageros2]() { rclcpp::spin(stageros2); });
+  std::thread t([&, stageros2]() { rclcpp::spin(stageros2); });
 
   stageros2->world->Start();
 

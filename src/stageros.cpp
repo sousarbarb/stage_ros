@@ -32,14 +32,19 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <mutex>
+#include <thread>
+
 // libstage
 #include <stage.hh>
+
+// ros
+#include <ros/ros.h>
 
 // roscpp
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
-#include <ros/ros.h>
 #include <rosgraph_msgs/Clock.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
@@ -53,9 +58,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
-
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -75,7 +77,7 @@ class StageNode
   ros::NodeHandle n_;
 
   // A mutex to lock access to fields that are used in message callbacks
-  boost::mutex msg_lock;
+  std::mutex msg_lock;
 
   // The models that we're interested in
   std::vector<Stg::ModelCamera*> cameramodels;
@@ -290,7 +292,7 @@ bool StageNode::cb_reset_srv(std_srvs::Empty::Request& request,
 void StageNode::cmdvelReceived(
     int idx, const boost::shared_ptr<geometry_msgs::Twist const>& msg)
 {
-  boost::mutex::scoped_lock lock(msg_lock);
+  std::scoped_lock lock(msg_lock);
   this->positionmodels[idx]->SetSpeed(msg->linear.x, msg->linear.y,
                                       msg->angular.z);
   this->base_last_cmd = this->sim_time;
@@ -490,7 +492,7 @@ void StageNode::WorldCallback()
     return;
   }
 
-  boost::mutex::scoped_lock lock(msg_lock);
+  std::scoped_lock lock(msg_lock);
 
   this->sim_time.fromSec(world->SimTimeNow() / 1e6);
   // We're not allowed to publish clock==0, because it used as a special
@@ -994,7 +996,7 @@ int main(int argc, char** argv)
 
   if (sn.SubscribeModels() != 0) exit(-1);
 
-  boost::thread t = boost::thread(boost::bind(&ros::spin));
+  std::thread t([]() { ros::spin(); });
 
   sn.world->Start();
 
