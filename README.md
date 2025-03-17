@@ -1,5 +1,9 @@
 # stage_ros
 
+Native ROS wrapper for the Stage Simulator (ROS 1 and ROS 2).
+
+![stage_ros Build Status](https://github.com/sousarbarb/stage_ros/actions/workflows/ci.yml/badge.svg)
+
 ## Setup
 
 ### ClangFormat
@@ -60,10 +64,9 @@ git clone https://github.com/sousarbarb/Stage.git
 cd Stage
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/stage ..
-make
+make -j$(nproc)
 sudo make install
-
-export LD_LIBRARY_PATH=/opt/stage/lib:$LD_LIBRARY_PATH
+sudo ldconfig --verbose /opt/stage/lib/
 
 cd /opt/stage/bin/
 ./stage ../share/stage/worlds/simple.world
@@ -122,7 +125,6 @@ roslaunch stage_ros teleop_twist_keyboard.launch
 **ROS 2**
 ```sh
 # Terminal 1
-export LD_LIBRARY_PATH=/opt/stage/lib:$LD_LIBRARY_PATH
 ros2 launch stage_ros stageros2.launch.xml
 
 # Terminal 2
