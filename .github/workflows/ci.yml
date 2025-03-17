@@ -63,7 +63,6 @@ jobs:
       - name: Setup ROS Environment
         run: |
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
-          sudo rosdep init
           rosdep update
         shell: bash
 
