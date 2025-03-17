@@ -1,0 +1,24 @@
+<launch>
+
+  <arg name="world_file" default="$(find-pkg-share stage_ros)/worlds/willow-full.world" />
+
+
+  <node pkg="stage_ros" exec="stageros2" name="stage" output="screen">
+
+    <param name="world" value="$(var world_file)" />
+
+    <param name="pub_gt_tf" value="true" />
+    <param name="pub_static_tf" value="true" />
+
+    <param name="gt_frame" value="gt" />
+    <param name="odom_frame" value="odom" />
+    <param name="base_footprint_frame" value="base_footprint" />
+    <param name="base_link_frame" value="base_link" />
+    <param name="laser_frame" value="base_laser_link" />
+    <param name="camera_frame" value="camera" />
+
+    <param name="use_odom_model" value="true" />
+
+  </node>
+
+</launch>
