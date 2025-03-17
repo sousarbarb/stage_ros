@@ -175,6 +175,8 @@ class StageROS2Node : public rclcpp::Node
       : rclcpp::Node("stageros2"),
         base_watchdog_timeout(std::chrono::nanoseconds(0))
   {
+    this->set_parameter(rclcpp::Parameter("use_sim_time", true));
+
     this->use_model_names = use_model_names;
     this->sim_time = rclcpp::Time(0.0);
     this->base_last_cmd = rclcpp::Time(0.0);
@@ -416,7 +418,7 @@ class StageROS2Node : public rclcpp::Node
 
     std::scoped_lock lock(msg_lock);
 
-    this->sim_time = rclcpp::Time(world->SimTimeNow() / 1e6);
+    this->sim_time = rclcpp::Time(world->SimTimeNow() * 1e3);
     // We're not allowed to publish clock==0, because it used as a special
     // value in parts of ROS, #4027.
     if (this->sim_time.seconds() == 0 && this->sim_time.nanoseconds() == 0)
