@@ -60,22 +60,11 @@ jobs:
         with:
           path: ros_ws/src/stage_ros
 
-      - name: Setup ROS Environment
-        run: |
-          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
-          rosdep update
-        shell: bash
-
-      - name: Install ROS Dependencies
-        run: |
-          cd ros_ws
-          rosdep install --from-paths src --ignore-src -y
-
       - name: Build and Test (ROS 1)
         if: matrix.ros_version == 1
         run: |
-          cd ros_ws
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
+          cd ros_ws
           catkin_make --force-cmake --cmake-args -DCMAKE_BUILD_TYPE=Release
           source devel/setup.bash
         shell: bash
@@ -83,8 +72,8 @@ jobs:
       - name: Build and Test (ROS 2)
         if: matrix.ros_version == 2
         run: |
-          cd ros_ws
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
+          cd ros_ws
           colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers status+ console_direct+ console_start_end+
           source install/setup.bash
         shell: bash
