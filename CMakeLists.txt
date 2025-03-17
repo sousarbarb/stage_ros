@@ -46,7 +46,9 @@ message(STATUS "stage found at: ${stage_DIR}")
 
 
 
-## ROBOT OPERATING SYSTEM (ROS) 1
+##########################################
+##### ROBOT OPERATING SYSTEM (ROS) 1 #####
+##########################################
 
 if("$ENV{ROS_VERSION}" STREQUAL "1")
 
@@ -162,11 +164,19 @@ install(DIRECTORY worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  FILES_MATCHING
+    PATTERN "*.launch"
+)
 
 
 
 
-## ROBOT OPERATING SYSTEM (ROS) 2
+
+##########################################
+##### ROBOT OPERATING SYSTEM (ROS) 2 #####
+##########################################
 
 elseif("$ENV{ROS_VERSION}" STREQUAL "2")
 
@@ -186,12 +196,25 @@ find_package(tf2_ros REQUIRED)
 ## Declare a C++ executable
 add_executable(stageros2 src/stageros2.cpp)
 
+set(${PROJECT_NAME}_extra_libs "")
+if(UNIX AND NOT APPLE)
+  set(${PROJECT_NAME}_extra_libs dl)
+endif()
+
 ## C++ executable specific include directories
 target_include_directories(stageros2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${Boost_INCLUDE_DIRS}
   ${STAGE_INCLUDE_DIRS}
+)
+
+## C++ executable specific target dependencies
+target_link_libraries(stageros2
+  Boost::system
+  Boost::thread
+  ${STAGE_LIBRARIES}
+  ${${PROJECT_NAME}_extra_libs}
 )
 
 ## C++ executable ament specific target dependencies
@@ -224,6 +247,13 @@ install(DIRECTORY rviz
 
 install(DIRECTORY worlds
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+  FILES_MATCHING
+    PATTERN "*.launch.xml"
+    PATTERN "*.launch.py"
 )
 
 ## Testing

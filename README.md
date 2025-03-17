@@ -89,6 +89,8 @@ git clone git@github.com:sousarbarb/stage_ros.git
 
 cd ~/ros1_ws/
 catkin_make --force-cmake --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+source devel/setup.bash
 ```
 
 **ROS 2**
@@ -101,5 +103,28 @@ cd ~/ros2_ws/src/
 git clone git@github.com:sousarbarb/stage_ros.git
 
 cd ~/ros2_ws/
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers summary+ status+ console_direct+ console_start_end+ console_stderr+
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers status+ console_direct+ console_start_end+
+
+source install/setup.bash
+```
+
+### Launch
+
+**ROS 1**
+```sh
+# Terminal 1
+roslaunch stage_ros stageros.launch
+
+# Terminal 2
+roslaunch stage_ros teleop_twist_keyboard.launch
+```
+
+**ROS 2**
+```sh
+# Terminal 1
+export LD_LIBRARY_PATH=/opt/stage/lib:$LD_LIBRARY_PATH
+ros2 launch stage_ros stageros2.launch.xml
+
+# Terminal 2
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=<cmd_vel_topic>
 ```
