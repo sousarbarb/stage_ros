@@ -1,4 +1,4 @@
-name: stage_ros CI
+name: stage_ros CI/CD
 
 on:
   push:
@@ -65,6 +65,7 @@ jobs:
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
           sudo rosdep init
           rosdep update
+        shell: bash
 
       - name: Install ROS Dependencies
         run: |
@@ -78,6 +79,7 @@ jobs:
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
           catkin_make --force-cmake --cmake-args -DCMAKE_BUILD_TYPE=Release
           source devel/setup.bash
+        shell: bash
 
       - name: Build and Test (ROS 2)
         if: matrix.ros_version == 2
@@ -86,3 +88,4 @@ jobs:
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
           colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers status+ console_direct+ console_start_end+
           source install/setup.bash
+        shell: bash
