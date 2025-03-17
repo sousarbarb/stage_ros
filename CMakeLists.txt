@@ -170,6 +170,10 @@ elseif("$ENV{ROS_VERSION}" STREQUAL "2")
 
 message(STATUS "Robot Operating System (ROS) detected: ROS $ENV{ROS_VERSION} $ENV{ROS_DISTRO}")
 
+if(DEFINED ENV{ROS_DISTRO} AND "$ENV{ROS_DISTRO}" STREQUAL "foxy")
+  add_definitions(-DROS_DISTRO_FOXY)
+endif()
+
 ## Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
