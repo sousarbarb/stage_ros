@@ -1,0 +1,88 @@
+name: stage_ros CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [noetic, foxy, humble, iron, rolling]
+        include:
+          - ros_distro: noetic
+            ros_version: 1
+            ubuntu_version: 20.04
+          - ros_distro: foxy
+            ros_version: 2
+            ubuntu_version: 20.04
+          - ros_distro: humble
+            ros_version: 2
+            ubuntu_version: 22.04
+          - ros_distro: iron
+            ros_version: 2
+            ubuntu_version: 22.04
+          - ros_distro: rolling
+            ros_version: 2
+            ubuntu_version: 24.04
+    runs-on: ubuntu-${{ matrix.ubuntu_version }}
+    container:
+      image: osrf/ros:${{ matrix.ros_distro }}-desktop
+    steps:
+      - name: Install Stage Simulator dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get dist-upgrade -y
+          sudo apt-get install -y git build-essential cmake
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends tzdata
+          sudo apt-get install -y libjpeg-dev libpng-dev libltdl-dev libfltk1.3-dev libglu1-mesa-dev
+
+      - name: Clone Stage Simulator repository
+        run: |
+          git clone --branch master https://github.com/sousarbarb/Stage.git
+
+      - name: Build and Install Stage Simulator natively
+        run: |
+          cd Stage
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/stage ..
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig --verbose /opt/stage/lib/
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ros_ws/src/stage_ros
+
+      - name: Setup ROS Environment
+        run: |
+          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
+          sudo rosdep init
+          rosdep update
+
+      - name: Install ROS Dependencies
+        run: |
+          cd ros_ws
+          rosdep install --from-paths src --ignore-src -y
+
+      - name: Build and Test (ROS 1)
+        if: matrix.ros_version == 1
+        run: |
+          cd ros_ws
+          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
+          catkin_make --force-cmake --cmake-args -DCMAKE_BUILD_TYPE=Release
+          source devel/setup.bash
+
+      - name: Build and Test (ROS 2)
+        if: matrix.ros_version == 2
+        run: |
+          cd ros_ws
+          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers status+ console_direct+ console_start_end+
+          source install/setup.bash
