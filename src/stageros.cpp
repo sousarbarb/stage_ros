@@ -121,7 +121,7 @@ class StageNode
   // to search for models of interest.
   static void ghfunc(Stg::Model* mod, StageNode* node);
 
-  static bool s_update(Stg::World* world, StageNode* node)
+  static bool s_update(Stg::World* /* world */, StageNode* node)
   {
     node->WorldCallback();
     // We return false to indicate that we want to be called again (an
@@ -277,8 +277,8 @@ void StageNode::ghfunc(Stg::Model* mod, StageNode* node)
   }
 }
 
-bool StageNode::cb_reset_srv(std_srvs::Empty::Request& request,
-                             std_srvs::Empty::Response& response)
+bool StageNode::cb_reset_srv(std_srvs::Empty::Request& /* request */,
+                             std_srvs::Empty::Response& /* response */)
 {
   ROS_INFO("Resetting stage!");
   for (size_t r = 0; r < this->positionmodels.size(); r++)
