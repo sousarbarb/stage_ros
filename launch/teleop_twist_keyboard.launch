@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="node_name" default="teleop_twist_keyboard" doc="node name (enables multiple instances)" />
+  <arg name="node_start_delay" default="0.0" doc="delay to start the node (s)" />
 
   <arg name="cmd_vel_topic" default="/cmd_vel" doc="name of cmd_vel topic (remap)" />
 
@@ -15,7 +16,8 @@
 
 
   <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"
-    name="$(arg node_name)" clear_params="true" output="screen">
+    name="$(arg node_name)" clear_params="true" output="screen"
+    launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'">
 
     <remap from="/cmd_vel" to="$(arg cmd_vel_topic)" />
 
