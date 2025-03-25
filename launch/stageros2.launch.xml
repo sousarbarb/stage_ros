@@ -3,23 +3,36 @@
   <arg name="world_file" default="$(find-pkg-share stage_ros)/worlds/willow-full.world" />
   <arg name="stageros2_args" default="" />
 
+  <arg name="pub_gt_tf" default="true" />
+  <arg name="pub_static_tf" default="true" />
+  <arg name="gt_frame" default="gt" />
+  <arg name="odom_frame" default="odom" />
+  <arg name="base_footprint_frame" default="base_footprint" />
+  <arg name="base_link_frame" default="base_link" />
+  <arg name="laser_frame" default="base_laser_link" />
+  <arg name="camera_frame" default="camera" />
+  <arg name="use_odom_model" default="true" />
 
-  <node pkg="stage_ros" exec="stageros2" name="stage" output="screen"
+  <arg name="node_name" default="stage" />
+
+
+  <node pkg="stage_ros" exec="stageros2" name="$(var node_name)"
+    output="screen"
     args="$(var stageros2_args)">
 
     <param name="world" value="$(var world_file)" />
 
-    <param name="pub_gt_tf" value="true" />
-    <param name="pub_static_tf" value="true" />
+    <param name="pub_gt_tf" value="$(var pub_gt_tf)" />
+    <param name="pub_static_tf" value="$(var pub_static_tf)" />
 
-    <param name="gt_frame" value="gt" />
-    <param name="odom_frame" value="odom" />
-    <param name="base_footprint_frame" value="base_footprint" />
-    <param name="base_link_frame" value="base_link" />
-    <param name="laser_frame" value="base_laser_link" />
-    <param name="camera_frame" value="camera" />
+    <param name="gt_frame" value="$(var gt_frame)" />
+    <param name="odom_frame" value="$(var odom_frame)" />
+    <param name="base_footprint_frame" value="$(var base_footprint_frame)" />
+    <param name="base_link_frame" value="$(var base_link_frame)" />
+    <param name="laser_frame" value="$(var laser_frame)" />
+    <param name="camera_frame" value="$(var camera_frame)" />
 
-    <param name="use_odom_model" value="true" />
+    <param name="use_odom_model" value="$(var use_odom_model)" />
 
   </node>
 
