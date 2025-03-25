@@ -59,7 +59,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#define USAGE "stageros <worldfile>"
+#define USAGE "stageros [-g] [-u] [-p] <worldfile>"
 #define IMAGE "image"
 #define DEPTH "depth"
 #define CAMERA_INFO "camera_info"
@@ -986,10 +986,13 @@ int main(int argc, char** argv)
 
   bool gui = true;
   bool use_model_names = false;
+  bool start_paused = false;
+
   for (int i = 0; i < (argc - 1); i++)
   {
     if (!strcmp(argv[i], "-g")) gui = false;
     if (!strcmp(argv[i], "-u")) use_model_names = true;
+    if (!strcmp(argv[i], "-p")) start_paused = true;
   }
 
   StageNode sn(argc - 1, argv, gui, argv[argc - 1], use_model_names);
@@ -998,7 +1001,14 @@ int main(int argc, char** argv)
 
   std::thread t([]() { ros::spin(); });
 
-  sn.world->Start();
+  if (start_paused)
+  {
+    sn.world->Stop();
+  }
+  else
+  {
+    sn.world->Start();
+  }
 
   Stg::World::Run();
 

@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="world_file" default="$(dirname)/../worlds/willow-full.world" />
+  <arg name="stageros_args" default="" />
 
   <arg name="pub_gt_tf" default="true" />
   <arg name="pub_static_tf" default="true" />
@@ -17,7 +18,8 @@
 
 
   <node pkg="stage_ros" type="stageros" name="$(arg node_name)"
-    clear_params="true" output="screen" args="$(arg world_file)"
+    clear_params="true" output="screen"
+    args="$(arg stageros_args) $(arg world_file)"
     launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'">
 
     <param name="pub_gt_tf" type="bool" value="$(arg pub_gt_tf)" />

@@ -1,9 +1,11 @@
 <launch>
 
   <arg name="world_file" default="$(find-pkg-share stage_ros)/worlds/willow-full.world" />
+  <arg name="stageros2_args" default="" />
 
 
-  <node pkg="stage_ros" exec="stageros2" name="stage" output="screen">
+  <node pkg="stage_ros" exec="stageros2" name="stage" output="screen"
+    args="$(var stageros2_args)">
 
     <param name="world" value="$(var world_file)" />
 

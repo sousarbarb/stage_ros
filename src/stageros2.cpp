@@ -67,7 +67,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #endif
 
-#define USAGE "stageros <worldfile>"
+#define USAGE "stageros2 [-g] [-u] [-p] <worldfile>"
 #define IMAGE "image"
 #define DEPTH "depth"
 #define CAMERA_INFO "camera_info"
@@ -1048,10 +1048,13 @@ int main(int argc, char** argv)
 
   bool gui = true;
   bool use_model_names = false;
+  bool start_paused = false;
+
   for (int i = 0; i < (argc - 1); i++)
   {
     if (!strcmp(argv[i], "-g")) gui = false;
     if (!strcmp(argv[i], "-u")) use_model_names = true;
+    if (!strcmp(argv[i], "-p")) start_paused = true;
   }
 
   std::shared_ptr<StageROS2Node> stageros2 = std::make_shared<StageROS2Node>(
@@ -1061,7 +1064,14 @@ int main(int argc, char** argv)
 
   std::thread t([&, stageros2]() { rclcpp::spin(stageros2); });
 
-  stageros2->world->Start();
+  if (start_paused)
+  {
+    stageros2->world->Stop();
+  }
+  else
+  {
+    stageros2->world->Start();
+  }
 
   Stg::World::Run();
 
