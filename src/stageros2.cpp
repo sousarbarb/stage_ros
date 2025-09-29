@@ -44,13 +44,6 @@
 #include <stage.hh>
 
 // ROS
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Vector3.h>
-#include <tf2/exceptions.h>
-#include <tf2/utils.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -61,10 +54,28 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <std_srvs/srv/empty.hpp>
 
-#ifdef ROS_DISTRO_FOXY
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#if defined(ROS_DISTRO_foxy) || defined(ROS_DISTRO_humble) || \
+    defined(ROS_DISTRO_jazzy)
+#include <tf2_ros/transform_broadcaster.h>
 #else
+#include <tf2_ros/transform_broadcaster.hpp>
+#endif
+
+#ifdef ROS_DISTRO_foxy
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2/exceptions.h>
+#include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
+#else
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include <tf2/exceptions.hpp>
+#include <tf2/utils.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/static_transform_broadcaster_node.hpp>
 #endif
 
 #define USAGE "stageros2 [-g] [-u] [-p] <worldfile>"

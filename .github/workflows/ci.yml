@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [noetic, foxy, humble, iron, rolling]
+        ros_distro: [noetic, foxy, humble, jazzy, rolling]
         include:
           - ros_distro: noetic
             ros_version: 1
@@ -24,9 +24,9 @@ jobs:
           - ros_distro: humble
             ros_version: 2
             ubuntu_version: 22.04
-          - ros_distro: iron
+          - ros_distro: jazzy
             ros_version: 2
-            ubuntu_version: 22.04
+            ubuntu_version: 24.04
           - ros_distro: rolling
             ros_version: 2
             ubuntu_version: 24.04

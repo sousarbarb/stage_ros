@@ -86,8 +86,6 @@ catkin_package(
     stage
 )
 
-link_directories(${catkin_LIBRARY_DIRS})
-
 ###########
 ## Build ##
 ###########
@@ -133,7 +131,8 @@ target_link_libraries(stageros
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
 install(PROGRAMS scripts/upgrade-world.sh
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -158,6 +157,13 @@ install(DIRECTORY launch
     PATTERN "*.launch"
 )
 
+install(
+  FILES
+    LICENSE
+    README.md
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
 
 
 
@@ -170,10 +176,6 @@ elseif("$ENV{ROS_VERSION}" STREQUAL "2")
 
 message(STATUS "Robot Operating System (ROS) detected: ROS $ENV{ROS_VERSION} $ENV{ROS_DISTRO}")
 
-if(DEFINED ENV{ROS_DISTRO} AND "$ENV{ROS_DISTRO}" STREQUAL "foxy")
-  add_definitions(-DROS_DISTRO_FOXY)
-endif()
-
 ## Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -182,6 +184,7 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
@@ -201,29 +204,35 @@ target_include_directories(stageros2 PUBLIC
 )
 
 ## C++ executable specific target dependencies
-target_link_libraries(stageros2
+target_link_libraries(stageros2 PUBLIC
   ${STAGE_LIBRARIES}
   ${${PROJECT_NAME}_extra_libs}
+  ${rclcpp_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${tf2_TARGETS}
+  ${tf2_geometry_msgs_TARGETS}
+  ${tf2_ros_TARGETS}
 )
 
-## C++ executable ament specific target dependencies
-ament_target_dependencies(stageros2
-  rclcpp
-  geometry_msgs
-  nav_msgs
-  sensor_msgs
-  std_msgs
-  std_srvs
-  tf2_geometry_msgs
-  tf2_ros
-)
+if(DEFINED ENV{ROS_DISTRO})
+  target_compile_definitions(stageros2 PRIVATE
+    ROS_DISTRO_$ENV{ROS_DISTRO}
+  )
+endif()
 
 #############
 ## Install ##
 #############
 
 install(TARGETS stageros2
-  DESTINATION lib/${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  INCLUDES DESTINATION include
 )
 
 install(PROGRAMS scripts/upgrade-world.sh
@@ -243,6 +252,13 @@ install(DIRECTORY launch
   FILES_MATCHING
     PATTERN "*.launch.xml"
     PATTERN "*.launch.py"
+)
+
+install(
+  FILES
+    LICENSE
+    README.md
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ## Testing
