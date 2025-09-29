@@ -1,0 +1,127 @@
+services:
+  ros1noetic:
+    image: osrf/ros:noetic-desktop-full
+    container_name: ros1noetic
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./:/home/ros_ws/src/stage_ros
+
+      # - ~/.Xauthority:/root/.Xauthority:rw
+      # - ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/tmp/runtime-user/${WAYLAND_DISPLAY}
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM=xcb
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+      # - QT_QPA_PLATFORM=wayland
+      # - QT_X11_NO_MITSHM=1
+      # - XDG_RUNTIME_DIR=/tmp/runtime-user
+      # - XDG_SESSION_TYPE=wayland
+      # - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+
+    tty: true
+    devices:
+      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  ros2foxy:
+    image: osrf/ros:foxy-desktop
+    container_name: ros2foxy
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./:/home/ros_ws/src/stage_ros
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM=xcb
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    tty: true
+    devices:
+      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  ros2humble:
+    image: osrf/ros:humble-desktop-full
+    container_name: ros2humble
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./:/home/ros_ws/src/stage_ros
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM=xcb
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    tty: true
+    devices:
+      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  ros2jazzy:
+    image: osrf/ros:jazzy-desktop-full
+    container_name: ros2jazzy
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./:/home/ros_ws/src/stage_ros
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM=xcb
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    tty: true
+    devices:
+      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  ros2rolling:
+    image: osrf/ros:rolling-desktop-full
+    container_name: ros2rolling
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./:/home/ros_ws/src/stage_ros
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_QPA_PLATFORM=xcb
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    tty: true
+    devices:
+      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
